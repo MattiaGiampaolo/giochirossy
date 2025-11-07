@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="it" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="utf-8" />
+<meta name="generator" content="EclipseCrossword" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+/* ��� Reset e base ��� */
+html, body { height:100%; margin:0; }
+body { font-family:"Segoe UI","Franklin Gothic Medium","Arial",sans-serif; }
+
+/* ��� Titolo ��� */
+h1 { color:#FFD700; text-align:center; margin:12px 0 2px; font-size:48px; font-weight:900; }
+
+/* ��� Box standard riutilizzati ��� */
+.ecw-answerbox{ color:#000; background:#E8F4FF; border:1px solid #B7DAF7; display:block; padding:.75em; width:240pt; border-radius:16px; box-shadow:5px 5px 12px rgba(37, 94, 146, 0.12); }
+.ecw-wordlabel{ text-transform:uppercase; margin:0; }
+.ecw-wordinfo{ font-size:12px; color:#808080; }
+.ecw-worderror{ color:#c00000; font-weight:bold; display:none; margin-top:1em; }
+
+/* ��� Celle pi� piccole (ridotte) ��� */
+:root{ --cell:.35in; --cell-font:.20in; }
+.ecw-box{ border:1pt solid; cursor:pointer; font-weight:bold; text-align:center; overflow:hidden; width:var(--cell); height:var(--cell); font-size:var(--cell-font); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08); position:relative; }
+.cell-number{ position:absolute; top:1px; left:1px; font-size:8px; font-weight:bold; color:#000; line-height:1; }
+.ecw-boxcheated_sel{ background:#D8B3FF; border-color:#9933CC; color:#6600CC; }
+.ecw-boxcheated_unsel{ background:#E8D5FF; border-color:#B366DD; color:#9933CC; }
+.ecw-boxerror_sel{ background:#FFE3E6; border-color:#C73535; color:#BF0000; }
+.ecw-boxerror_unsel{ background:#FFEDEE; border-color:#C96C6C; color:#BF0000; }
+.ecw-boxnormal_sel{ background:#D8B3FF; border-color:#9933CC; color:#000; }
+.ecw-boxnormal_unsel{ background:#E8D5FF; border-color:#B366DD; color:#000; }
+.ecw-input{ font-family:"Segoe UI","Verdana","Arial",sans-serif; }
+
+/* ��� Layout fullscreen: griglia stabile, scroll solo a destra ��� */
+.app { height:calc(100vh - 44px); display:flex; gap:8px; padding:12px 18px 18px; box-sizing:border-box; overflow:hidden; justify-content:center; position:relative; z-index:1; }
+.leftPane{ flex:0 1 auto; min-width:0; min-height:0; display:flex; flex-direction:column; justify-content:center; align-items:center; }
+.gridWrap{ flex:1 1 auto; min-height:0; min-width:0; overflow:auto; display:flex; justify-content:center; align-items:center; }
+#crossword{ border-collapse:collapse; margin:auto; }
+.rightPane{ width:36%; min-width:320px; max-width:560px; display:flex; flex-direction:column; }
+.rightTopBar{ position:sticky; top:0; background:#fff; padding:8px 0; z-index:5; display:flex; gap:8px; align-items:center; border-bottom:1px solid #B7DAF7; }
+.rightContent{ min-height:0; overflow:auto; padding-top:8px; }
+.rightContent h3{ color:#9370DB !important; }
+#welcomelabel{ color:#9370DB !important; font-weight:700; }
+#clues-list{ padding-left:1.1em; margin:0; }
+.cw-clue{ cursor:pointer; margin-bottom:.6em; line-height:1.35; transition: all 0.3s ease; }
+.cw-clue.active{ background:#E8D5FF; border-left:3px solid #9933CC; padding-left:.5em; box-shadow:inset 0 0 8px rgba(153, 51, 204, 0.3); }
+.cw-clue.solved{ opacity:0.5; text-decoration:line-through; color:#999; }
+
+/* ��� Pulsanti ��� */
+.btn5{ display:inline-block; padding:.6em 1.2em; border:none; border-radius:.5em; text-decoration:none; font-family:arial; text-transform:uppercase; font-weight:600; color:#fff; background:#22C55E; box-shadow:inset 0 -0.6em 0 -0.3em rgba(0,0,0,.20); cursor:pointer; }
+.btn5:hover{ background:#16A34A; }
+.btn5:active{ background:#15803D; top:.15em; color:#DCFCE7; box-shadow:none; }
+
+/* ��� Responsivo ��� */
+@media (max-width: 900px){
+  .app{ flex-direction:column; }
+  .rightPane{ width:100%; max-width:none; }
+}
+
+.wordinfo-big{
+  font-size:18px; /* pi� grande */
+  font-weight:600;
+  color:#333;
+}
+
+/* ��� Layout indizi diviso ��� */
+.clues-container{
+  display:flex;
+  gap:16px;
+  height:auto;
+}
+.clues-half{
+  flex:1;
+}
+.clues-half ol{
+  padding-left:1.1em;
+  margin:0;
+}
+
+/* ��� Decorazioni sfondo ��� */
+body { position: relative; }
+.decoration { position: fixed; opacity: 0.25; pointer-events: none; z-index: 0; }
+.decoration-sunflower { width: 80px; height: 80px; }
+.decoration-tulip { width: 70px; height: 70px; }
+.decoration-daisy { width: 60px; height: 60px; }
+.decoration-hamster { width: 75px; height: 75px; }
+.decoration-rabbit { width: 85px; height: 85px; }
+.decoration-seahorse { width: 70px; height: 70px; }
+
+.modal{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:9999; }
+.modal.show{ display:flex; }
+.modal-backdrop{ position:absolute; inset:0; background:rgba(12,36,66,.45); backdrop-filter:saturate(110%) blur(2px); }
+.modal-panel{
+  position:relative; z-index:1; width:min(680px, 94vw); max-height:90vh; overflow:auto;
+  background:#E8F4FF; border:1px solid #B7DAF7; border-radius:16px;
+  box-shadow:0 18px 42px rgba(0,0,0,.28); padding:18px;
+}
+.modal-title{ color:#2B93E8; margin:8px 0 6px; font-size:22px; }
+.modal-close{ position:absolute; top:6px; right:10px; border:none; background:transparent; font-size:30px; line-height:1; color:#2B93E8; cursor:pointer; }
+.modal-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:8px; }
+
+
+</style>
+</head>
+<body>
+
+
+<div class="app">
+  <!-- Sinistra: griglia che riempie il viewport; nessuno scroll del body -->
+  <section class="leftPane">
+    <div id="waitmessage" class="ecw-answerbox">Caricamento del cruciverba�</div>
+    <div class="gridWrap">
+      <table id="crossword" cellpadding="0" cellspacing="0" style="display:none;"></table>
+    </div>
+    <div id="footer-info" style="text-align:center; color:#666; font-size:12px; padding-top:6px;">0 parole su 21 sono corrette.</div>
+  </section>
+
+  <!-- Destra: indizi scrollabili; top bar con check fisso -->
+  <aside class="rightPane">
+    <div class="rightTopBar">
+      <button id="checkbuttonTop" type="button" class="btn5">CONTROLLA PUZZLE</button>
+      <button id="solvebutton" type="button" class="btn5" style="background:#FF0000; margin-left:8px;">RISOLVI</button>
+      <span id="welcomelabel" style="color:#9370DB; font-weight:700;">Clicca un indizio per iniziare</span>
+    </div>
+
+    <div class="rightContent">
+      <!-- Box di servizio: niente indizio duplicato -->
+	<div id="answerbox" class="ecw-answerbox" style="display:none;">
+	  <div id="wordinfo" class="wordinfo-big"></div>
+	  <div id="worderror" class="ecw-worderror"></div>
+	</div>
+
+      <div class="clues-container">
+        <div class="clues-half">
+          <h3 style="margin:14px 0 8px; color:#9370DB; text-transform:uppercase;">Orizzontali</h3>
+          <ul id="clues-list-across"></ul>
+        </div>
+        <div class="clues-half">
+          <h3 style="margin:14px 0 8px; color:#9370DB; text-transform:uppercase;">Verticali</h3>
+          <ul id="clues-list-down"></ul>
+        </div>
+      </div>
+
+      <div id="congratulations" class="ecw-answerbox" style="display:none; margin-top:8px;">
+        <h3>CONGRATULAZIONI!</h3>
+        <p>Hai completato questo cruciverba.</p>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- ��� Decorazioni sfondo ��� -->
+<!-- GIRASOLI -->
+<svg class="decoration" style="top: 5%; left: 2%; width: 80px; height: 80px;" viewBox="0 0 100 100">
+  <circle cx="50" cy="50" r="15" fill="#FFD700"/><circle cx="30" cy="30" r="8" fill="#FFA500"/><circle cx="70" cy="30" r="8" fill="#FFA500"/><circle cx="30" cy="70" r="8" fill="#FFA500"/><circle cx="70" cy="70" r="8" fill="#FFA500"/><circle cx="25" cy="50" r="7" fill="#FFB347"/><circle cx="75" cy="50" r="7" fill="#FFB347"/><circle cx="50" cy="25" r="7" fill="#FFB347"/><circle cx="50" cy="75" r="7" fill="#FFB347"/><rect x="48" y="65" width="4" height="25" fill="#228B22"/>
+</svg>
+
+<!-- TULIPANI -->
+<svg class="decoration" style="top: 15%; right: 3%; width: 70px; height: 70px;" viewBox="0 0 100 100">
+  <path d="M 50 90 L 50 40" stroke="#228B22" stroke-width="3" fill="none"/><path d="M 30 45 Q 30 20 50 15 Q 70 20 70 45 Q 50 50 30 45" fill="#FF1493"/><path d="M 40 55 Q 42 45 50 43 Q 58 45 60 55" fill="#FFB6C1"/>
+</svg>
+
+<!-- MARGHERITA -->
+<svg class="decoration" style="bottom: 10%; left: 5%; width: 60px; height: 60px;" viewBox="0 0 100 100">
+  <circle cx="50" cy="50" r="12" fill="#FFD700"/><circle cx="50" cy="25" r="7" fill="#FFF"/><circle cx="73" cy="35" r="7" fill="#FFF"/><circle cx="75" cy="58" r="7" fill="#FFF"/><circle cx="60" cy="75" r="7" fill="#FFF"/><circle cx="35" cy="75" r="7" fill="#FFF"/><circle cx="27" cy="58" r="7" fill="#FFF"/><circle cx="25" cy="35" r="7" fill="#FFF"/>
+</svg>
+
+<!-- CRICETO -->
+<svg class="decoration" style="top: 40%; right: 8%; width: 75px; height: 75px;" viewBox="0 0 100 100">
+  <ellipse cx="50" cy="60" rx="35" ry="28" fill="#D2691E"/><circle cx="50" cy="35" r="22" fill="#D2691E"/><circle cx="40" cy="30" r="5" fill="#000"/><circle cx="38" cy="28" r="2" fill="#FFF"/><circle cx="60" cy="30" r="4" fill="#8B4513"/><ellipse cx="30" cy="55" rx="6" ry="8" fill="#CD853F"/><ellipse cx="70" cy="55" rx="6" ry="8" fill="#CD853F"/><circle cx="50" cy="72" r="4" fill="#8B4513"/>
+</svg>
+
+<!-- CONIGLIO -->
+<svg class="decoration" style="bottom: 20%; right: 4%; width: 85px; height: 85px;" viewBox="0 0 100 100">
+  <ellipse cx="50" cy="65" rx="25" ry="20" fill="#FFF"/><circle cx="50" cy="40" r="18" fill="#FFF"/><circle cx="42" cy="28" r="6" fill="#FFF"/><circle cx="58" cy="28" r="6" fill="#FFF"/><circle cx="45" cy="38" r="3" fill="#000"/><ellipse cx="50" cy="50" rx="2" ry="3" fill="#FFC0CB"/><path d="M 50 50 L 50 57" stroke="#000" stroke-width="1"/>
+</svg>
+
+<!-- CAVALLUCCIO MARINO -->
+<svg class="decoration" style="bottom: 5%; right: 15%; width: 70px; height: 70px;" viewBox="0 0 100 100">
+  <path d="M 50 85 Q 45 70 40 60 Q 35 50 30 40 Q 25 30 25 20 Q 25 10 35 8 Q 45 6 50 15 Q 55 6 65 8 Q 75 10 75 20 Q 75 30 70 40" stroke="#20B2AA" stroke-width="3" fill="none"/><circle cx="50" cy="18" r="6" fill="#20B2AA"/><circle cx="50" cy="18" r="3" fill="#000"/><path d="M 50 24 Q 55 30 50 35 Q 45 30 50 24" fill="#32CD32"/>
+</svg>
+
+<!-- ROSA ROSSA -->
+<svg class="decoration" style="bottom: 30%; left: 8%; width: 65px; height: 65px;" viewBox="0 0 100 100">
+  <path d="M 50 90 L 50 35" stroke="#228B22" stroke-width="2" fill="none"/><path d="M 50 35 Q 35 25 35 15 Q 35 5 50 5 Q 65 5 65 15 Q 65 25 50 35" fill="#DC143C"/><circle cx="50" cy="30" r="5" fill="#8B0000"/>
+</svg>
+
+<!-- GIRASOLE PICCOLO -->
+<svg class="decoration" style="bottom: 15%; left: 15%; width: 50px; height: 50px;" viewBox="0 0 100 100">
+  <circle cx="50" cy="50" r="10" fill="#FFD700"/><circle cx="35" cy="35" r="5" fill="#FFA500"/><circle cx="65" cy="35" r="5" fill="#FFA500"/><circle cx="35" cy="65" r="5" fill="#FFA500"/><circle cx="65" cy="65" r="5" fill="#FFA500"/><rect x="48" y="65" width="3" height="20" fill="#228B22"/>
+</svg>
+
+<!-- CONIGLIO 2 -->
+<svg class="decoration" style="top: 50%; left: 3%; width: 80px; height: 80px;" viewBox="0 0 100 100">
+  <ellipse cx="50" cy="65" rx="25" ry="20" fill="#F5DEB3"/><circle cx="50" cy="40" r="18" fill="#F5DEB3"/><circle cx="42" cy="28" r="6" fill="#F5DEB3"/><circle cx="58" cy="28" r="6" fill="#F5DEB3"/><circle cx="45" cy="38" r="3" fill="#000"/><circle cx="55" cy="42" r="3" fill="#000"/><ellipse cx="50" cy="50" rx="2" ry="3" fill="#FFC0CB"/>
+</svg>
+
+<!-- CAVALLUCCIO MARINO 2 -->
+<svg class="decoration" style="top: 25%; left: 12%; width: 65px; height: 65px;" viewBox="0 0 100 100">
+  <path d="M 50 85 Q 45 70 40 60 Q 35 50 30 40 Q 25 30 25 20 Q 25 10 35 8 Q 45 6 50 15 Q 55 6 65 8 Q 75 10 75 20 Q 75 30 70 40" stroke="#00CED1" stroke-width="3" fill="none"/><circle cx="50" cy="18" r="6" fill="#00CED1"/><circle cx="50" cy="18" r="3" fill="#000"/><path d="M 50 24 Q 55 30 50 35 Q 45 30 50 24" fill="#FFD700"/>
+</svg>
+
+<!-- PAPPAGALLO -->
+<svg class="decoration" style="top: 8%; right: 1%; width: 90px; height: 90px;" viewBox="0 0 100 100">
+  <circle cx="50" cy="45" r="20" fill="#32CD32"/><path d="M 50 25 L 45 15 L 55 15 Z" fill="#FF6347"/><circle cx="50" cy="45" r="8" fill="#FFD700"/><circle cx="50" cy="40" r="4" fill="#000"/><path d="M 60 50 L 75 45 L 70 55 Z" fill="#FFD700"/><path d="M 40 50 L 25 45 L 30 55 Z" fill="#FFD700"/>
+</svg>
+
+<!-- FARFALLA -->
+<svg class="decoration" style="top: 35%; right: 2%; width: 55px; height: 55px;" viewBox="0 0 100 100">
+  <ellipse cx="40" cy="40" rx="15" ry="20" fill="#FF69B4"/><ellipse cx="60" cy="40" rx="15" ry="20" fill="#FF69B4"/><ellipse cx="35" cy="30" rx="10" ry="15" fill="#FFB6C1"/><ellipse cx="65" cy="30" rx="10" ry="15" fill="#FFB6C1"/><rect x="48" y="40" width="4" height="20" fill="#000"/>
+</svg>
+
+<!-- FIORE VIOLA -->
+<svg class="decoration" style="top: 60%; right: 5%; width: 70px; height: 70px;" viewBox="0 0 100 100">
+  <circle cx="50" cy="50" r="10" fill="#FFD700"/><path d="M 50 30 Q 40 20 35 15 Q 40 25 50 35" fill="#9370DB"/><path d="M 50 30 Q 60 20 65 15 Q 60 25 50 35" fill="#9370DB"/><path d="M 70 50 Q 80 40 85 35 Q 75 45 65 50" fill="#9370DB"/><path d="M 30 50 Q 20 40 15 35 Q 25 45 35 50" fill="#9370DB"/><path d="M 35 70 Q 25 75 20 80 Q 30 70 40 65" fill="#9370DB"/><path d="M 65 70 Q 75 75 80 80 Q 70 70 60 65" fill="#9370DB"/><rect x="48" y="60" width="2" height="25" fill="#228B22"/>
+</svg>
+
+<!-- ELEFANTE -->
+<svg class="decoration" style="bottom: 35%; left: 1%; width: 95px; height: 95px;" viewBox="0 0 100 100">
+  <ellipse cx="50" cy="60" rx="30" ry="25" fill="#8B8B8B"/><circle cx="50" cy="35" r="18" fill="#8B8B8B"/><path d="M 50 55 Q 40 70 35 85 Q 40 75 50 65" stroke="#696969" stroke-width="4" fill="none"/><circle cx="43" cy="30" r="3" fill="#000"/><circle cx="50" cy="70" r="3" fill="#FFD700"/><path d="M 55 65 L 65 60 L 70 70 L 60 75 Z" fill="#8B8B8B"/>
+</svg>
+
+<!-- SCIMMIA -->
+<svg class="decoration" style="bottom: 40%; left: 12%; width: 85px; height: 85px;" viewBox="0 0 100 100">
+  <circle cx="50" cy="50" r="22" fill="#8B4513"/><circle cx="50" cy="35" r="18" fill="#8B4513"/><circle cx="50" cy="50" r="12" fill="#D2B48C"/><circle cx="45" cy="32" r="3" fill="#000"/><circle cx="55" cy="32" r="3" fill="#000"/><circle cx="50" cy="42" r="2" fill="#000"/><ellipse cx="30" cy="45" rx="8" ry="12" fill="#8B4513"/><ellipse cx="70" cy="45" rx="8" ry="12" fill="#8B4513"/>
+</svg>
+
+<!-- FIORE ARANCIONE -->
+<svg class="decoration" style="top: 72%; left: 7%; width: 75px; height: 75px;" viewBox="0 0 100 100">
+  <circle cx="50" cy="50" r="12" fill="#FFD700"/><path d="M 50 25 L 55 35 L 65 30 L 60 40 L 70 45 L 60 50 L 65 60 L 55 55 L 50 70 L 45 55 L 35 60 L 40 50 L 30 45 L 40 40 L 35 30 L 45 35 Z" fill="#FF8C00"/>
+</svg>
+
+<!-- ZEBRA -->
+<svg class="decoration" style="top: 55%; right: 10%; width: 90px; height: 90px;" viewBox="0 0 100 100">
+  <ellipse cx="50" cy="60" rx="28" ry="22" fill="#FFF"/><circle cx="55" cy="35" r="16" fill="#FFF"/><path d="M 30 58 L 35 75 L 45 72 L 42 58 Z" fill="#FFF"/><path d="M 70 58 L 65 75 L 55 72 L 58 58 Z" fill="#FFF"/><circle cx="55" cy="30" r="3" fill="#000"/><ellipse cx="50" cy="55" rx="15" ry="18" fill="none" stroke="#000" stroke-width="2"/><path d="M 40 55 L 50 55 M 45 60 L 55 60 M 42 50 L 52 50" stroke="#000" stroke-width="1"/>
+</svg>
+
+<!-- FENICOTTERO -->
+<svg class="decoration" style="bottom: 25%; right: 12%; width: 80px; height: 80px;" viewBox="0 0 100 100">
+  <circle cx="50" cy="30" r="12" fill="#FF69B4"/><path d="M 50 42 L 48 65 L 52 65" stroke="#FF1493" stroke-width="2" fill="none"/><path d="M 48 65 L 42 75 L 48 70 Z" fill="#FF1493"/><path d="M 52 65 L 58 75 L 52 70 Z" fill="#FF1493"/><path d="M 50 30 Q 45 25 40 20" stroke="#FF69B4" stroke-width="2" fill="none"/>
+</svg>
+
+<!-- GIGLIO ROSA -->
+<svg class="decoration" style="top: 78%; left: 20%; width: 70px; height: 70px;" viewBox="0 0 100 100">
+  <path d="M 50 90 L 50 40" stroke="#228B22" stroke-width="2" fill="none"/><path d="M 30 45 L 35 20 L 45 40 Z" fill="#FFB6C1"/><path d="M 50 45 L 45 15 L 55 40 Z" fill="#FF69B4"/><path d="M 70 45 L 65 20 L 55 40 Z" fill="#FFB6C1"/><circle cx="50" cy="45" r="4" fill="#FFD700"/>
+</svg>
+
+<!-- ORCHIDEA -->
+<svg class="decoration" style="top: 45%; left: 8%; width: 65px; height: 65px;" viewBox="0 0 100 100">
+  <path d="M 50 90 L 50 40" stroke="#228B22" stroke-width="2" fill="none"/><ellipse cx="50" cy="30" rx="8" ry="12" fill="#DA70D6"/><ellipse cx="38" cy="40" rx="6" ry="10" fill="#EE82EE"/><ellipse cx="62" cy="40" rx="6" ry="10" fill="#EE82EE"/><ellipse cx="35" cy="50" rx="5" ry="8" fill="#DDA0DD"/><ellipse cx="65" cy="50" rx="5" ry="8" fill="#DDA0DD"/><circle cx="50" cy="40" r="3" fill="#FFD700"/>
+</svg>
+
+<!-- TARTARUGA -->
+<svg class="decoration" style="bottom: 48%; right: 3%; width: 75px; height: 75px;" viewBox="0 0 100 100">
+  <ellipse cx="50" cy="55" rx="28" ry="20" fill="#8B7355"/><circle cx="50" cy="55" r="20" fill="#A0826D"/><path d="M 30 60 L 25 70 L 30 75 L 35 70 Z" fill="#8B7355"/><path d="M 70 60 L 75 70 L 70 75 L 65 70 Z" fill="#8B7355"/><path d="M 45 35 L 50 30 L 55 35" fill="#8B7355"/><circle cx="50" cy="35" r="2" fill="#000"/>
+</svg>
+
+<!-- GIRAFFE PICCOLA -->
+<svg class="decoration" style="top: 82%; right: 8%; width: 70px; height: 70px;" viewBox="0 0 100 100">
+  <rect x="45" y="50" width="10" height="30" fill="#DAA520"/><path d="M 50 50 L 45 30 Q 45 25 50 20 Q 55 25 55 30 Z" fill="#DAA520"/><circle cx="48" cy="18" r="3" fill="#8B4513"/><circle cx="52" cy="18" r="3" fill="#8B4513"/><path d="M 45 45 L 35 35 L 40 40 Z" fill="#DAA520"/><path d="M 55 45 L 65 35 L 60 40 Z" fill="#DAA520"/><path d="M 45 80 L 40 90 L 45 95 L 48 90 Z" fill="#DAA520"/><path d="M 55 80 L 60 90 L 55 95 L 52 90 Z" fill="#DAA520"/><circle cx="48" cy="28" r="2" fill="#000"/><line x1="45" y1="35" x2="45" y2="42" stroke="#8B4513" stroke-width="1"/>
+</svg>
+
+<!-- COLIBR� -->
+<svg class="decoration" style="top: 20%; left: 20%; width: 60px; height: 60px;" viewBox="0 0 100 100">
+  <circle cx="50" cy="55" r="10" fill="#228B22"/><path d="M 50 55 L 45 35 L 50 30 L 55 35 Z" fill="#FF0000"/><path d="M 50 55 L 35 50 L 40 55 L 35 60 Z" fill="#32CD32"/><path d="M 50 55 L 65 50 L 60 55 L 65 60 Z" fill="#32CD32"/><path d="M 50 20 Q 55 10 60 5" stroke="#FF0000" stroke-width="1.5" fill="none"/>
+</svg>
+
+<!-- FIORE GIALLO GRANDE -->
+<svg class="decoration" style="bottom: 55%; left: 18%; width: 100px; height: 100px;" viewBox="0 0 100 100">
+  <circle cx="50" cy="50" r="15" fill="#FFD700"/><circle cx="25" cy="25" r="10" fill="#FFED4E"/><circle cx="75" cy="25" r="10" fill="#FFED4E"/><circle cx="25" cy="75" r="10" fill="#FFED4E"/><circle cx="75" cy="75" r="10" fill="#FFED4E"/><circle cx="50" cy="20" r="9" fill="#FFED4E"/><circle cx="50" cy="80" r="9" fill="#FFED4E"/><circle cx="20" cy="50" r="9" fill="#FFED4E"/><circle cx="80" cy="50" r="9" fill="#FFED4E"/><rect x="48" y="70" width="3" height="25" fill="#228B22"/>
+</svg>
+
+<!-- API -->
+<svg class="decoration" style="top: 68%; right: 9%; width: 55px; height: 55px;" viewBox="0 0 100 100">
+  <ellipse cx="50" cy="50" rx="12" ry="15" fill="#FFD700"/><circle cx="45" cy="40" r="8" fill="#000"/><circle cx="45" cy="38" r="2" fill="#FFF"/><path d="M 48 32 L 52 28 L 55 32 M 45 27 L 50 20 L 55 27" stroke="#FFB6C1" stroke-width="1.5" fill="none"/><path d="M 32 48 L 20 45 L 28 50 Z" fill="#FFB6C1"/><path d="M 68 48 L 80 45 L 72 50 Z" fill="#FFB6C1"/>
+</svg>
+
+<!-- HIBISCO ROSSO -->
+<svg class="decoration" style="bottom: 18%; left: 25%; width: 85px; height: 85px;" viewBox="0 0 100 100">
+  <circle cx="50" cy="50" r="18" fill="#FFD700"/><path d="M 50 25 L 60 35 L 70 30 L 65 45 L 75 50 L 65 55 L 70 70 L 60 65 L 50 75 L 40 65 L 30 70 L 35 55 L 25 50 L 35 45 L 30 30 L 40 35 Z" fill="#FF0000"/><circle cx="50" cy="50" r="8" fill="#FFB6C1"/><rect x="48" y="68" width="2" height="20" fill="#228B22"/>
+</svg>
+
+<!-- LEONE PICCOLO -->
+<svg class="decoration" style="top: 12%; left: 18%; width: 80px; height: 80px;" viewBox="0 0 100 100">
+  <circle cx="50" cy="50" r="12" fill="#DAA520"/><circle cx="50" cy="50" r="20" fill="none" stroke="#8B4513" stroke-width="2"/><circle cx="45" cy="45" r="2" fill="#000"/><ellipse cx="50" cy="55" rx="3" ry="4" fill="#FFB6C1"/><path d="M 50 55 L 50 62" stroke="#000" stroke-width="0.5"/><path d="M 30 50 L 20 48 M 30 50 L 22 55 M 70 50 L 80 48 M 70 50 L 78 55" stroke="#DAA520" stroke-width="1"/>
+</svg>
+
+<!-- ��� Dati puzzle (immutati) ��� -->
+<script>
+  CrosswordWidth = 25;
+  CrosswordHeight = 36;
+  Words = 21;
+  WordLength = [4, 5, 5, 4, 10, 7, 10, 11, 7, 11, 8, 8, 27, 10, 4, 15, 6, 10, 8, 8, 11];
+  Word = ["SARA", "MARTA", "UNITO", "NILO", "BIOCHIMICA", "MAIORCA", "DOTTORESSA", "LEBRONJAMES", "FRIENDS", "MITOCONDRIO", "CHANDLER", "POLLETTO", "LACAFFETTERIADELLUNIVERSITA", 
+  "CAPSAICINA", "JOEY", "MANNINOGIUSEPPE", "MATTIA", "ESOTERMICA", "UNIFORNO", "SANDOKAN", "IBERNAZIONE"];
+  Clue = [
+    "La tua terapeuta non pagata e sempre disponibile",
+    "Il panino che prendiamo sempre insieme e che é diventato il nostro preferito",
+    "Luogo dove hai passato gli studi e di cui non riesci mai a trovare niente di cui lamentarti",
+    "Fiume più lungo che attraversa l’Africa?",
+    "La materia/esame più difficile che hai studiato e che non vorresti piú rivedere.",
+    "La vacanza dove siamo andati in estate, quella con le spiagge pazze e dove sei andata contro una macchina nel parcheggio",
+    "Quello che sei diventata oggi dopo anni di studio, sacrifici, notti insonni e appunti infiniti.",
+    "Il soprannome affettuoso che ti ha dato MattiMatti perché lanci sempre tutto sul letto.",
+    "La serie TV che vuoi sempre rivedere e da cui hai preso spunti per i nomi di due bestiolone",
+    "L’organulo che ti rappresenta meglio perché hai sempre energia da vendere",
+    "L’animaletto che vuole sempre correre e mangiare semi di girasoli",
+    "Odore dei tuoi capelli dopo lavoro",
+    "Il bar/locale dove ci trovavamo sempre per la colazione del giovedi mattina, il nostro 'quartier generale' dove abbiamo iniziato le stressanti lezioni all’orto botanico.",
+    "La sostanza che hai studiato per la tesi di cui non sei tanto ghiotta.",
+    "Ti considerava il suo gabinetto ma ora invece ti segue ovunque",
+    "Il professore/professoressa della tesi che ti ha seguito in questi mesi, quello che prendevi in giro con gli sticker sul gruppo",
+    "La persona che ti invia piú audio in assoluto e che la insulti sempre per questo.",
+    "Reazione” che Rossi ha quando si arrabbia perché non ha voglia di studiare",
+    "Il nome del gruppo WhatsApp dell’uni dove si cerca di organizzare caotiche uscite dell'ultimo minuto.",
+    "Quella in prima fila, fidanzata con Micheal Scott",
+    "Quando dici che studi ma poi sparisci per ore in un bel sonnellino: fenomeno noto come…"
+  ];
+  AnswerHash = [94328,63281,74035,84030,69367,89555,32140,98299,48495,84107,1453,20756,4588,12173,25251,393,2244,21763,50490,60305,26244];
+  WordX = [4,8,2,8,0,18,5,12,3,3,5,5,5,9,11,16,19,13,3,8,12];
+  WordY = [1,3,8,9,11,12,13,16,19,25,28,33,0,2,8,10,11,12,16,16,25];
+  LastHorizontalWord = 11;
+  OnlyCheckOnce = false;
+  WordCellNumbers = []; // Numeri di cella per ogni parola
+</script>
+
+<!-- ��� Logica: griglia + indizi cliccabili + edit diretto nelle celle ��� -->
+<script>
+var BadChars = "`~!@^*()_={[}]\\|:;\"',<>/?";
+var TableAcrossWord, TableDownWord;
+var CurrentWord=-1, PrevWordHorizontal=false;
+var CrosswordFinished=false;
+var CellNumbers; // Matrice globale con i numeri delle celle
+
+function PadNumber(n){ return n<10?("00"+n):n<100?("0"+n):(""+n); }
+function CellAt(x,y){ return document.getElementById("c"+PadNumber(x)+PadNumber(y)); }
+function ContainsBadChars(s){ for (let i=0;i<s.length;i++) if (BadChars.indexOf(s.charAt(i))>=0) return true; return false; }
+
+function initGrid(){
+  TableAcrossWord = Array.from({length:CrosswordWidth},()=>Array(CrosswordHeight).fill(-1));
+  TableDownWord   = Array.from({length:CrosswordWidth},()=>Array(CrosswordHeight).fill(-1));
+  for (let i=0;i<=LastHorizontalWord;i++){ let x=WordX[i], y=WordY[i]; for (let j=0;j<WordLength[i];j++) TableAcrossWord[x+j][y]=i; }
+  for (let i=LastHorizontalWord+1;i<Words;i++){ let x=WordX[i], y=WordY[i]; for (let j=0;j<WordLength[i];j++) TableDownWord[x][y+j]=i; }
+
+  // Crea mappa di numeri per ogni cella
+  CellNumbers = Array.from({length:CrosswordWidth},()=>Array(CrosswordHeight).fill(-1));
+  let cellNumber = 1;
+  for (let y=0;y<CrosswordHeight;y++){
+    for (let x=0;x<CrosswordWidth;x++){
+      if (TableAcrossWord[x][y]>=0 || TableDownWord[x][y]>=0){
+        // Controlla se � l'inizio di una parola
+        let isStart = false;
+        if (TableAcrossWord[x][y]>=0 && WordX[TableAcrossWord[x][y]]==x && WordY[TableAcrossWord[x][y]]==y) isStart = true;
+        if (TableDownWord[x][y]>=0 && WordX[TableDownWord[x][y]]==x && WordY[TableDownWord[x][y]]==y) isStart = true;
+        if (isStart) CellNumbers[x][y] = cellNumber++;
+      }
+    }
+  }
+
+  // Popola WordCellNumbers per ogni parola
+  WordCellNumbers = Array(Words);
+  for (let i=0; i<Words; i++){
+    WordCellNumbers[i] = CellNumbers[WordX[i]][WordY[i]];
+  }
+
+  let html="";
+  for (let y=0;y<CrosswordHeight;y++){
+    html+="<tr>";
+    for (let x=0;x<CrosswordWidth;x++){
+      if (TableAcrossWord[x][y]>=0 || TableDownWord[x][y]>=0){
+        let numStr = CellNumbers[x][y]>=0 ? `<span class="cell-number">${CellNumbers[x][y]}</span>` : '';
+        html+=`<td id="c${PadNumber(x)}${PadNumber(y)}" class="ecw-box ecw-boxnormal_unsel" onclick="SelectThisWord(event)">${numStr}&nbsp;</td>`;
+      }
+      else html+="<td></td>";
+    }
+    html+="</tr>";
+  }
+  const wait = document.getElementById("waitmessage");
+  const table = document.getElementById("crossword");
+  table.innerHTML = html;
+  wait.style.display="none";
+  table.style.display="table";
+}
+
+function buildClues(){
+  const listAcross = document.getElementById('clues-list-across');
+  const listDown = document.getElementById('clues-list-down');
+  listAcross.innerHTML = '';
+  listDown.innerHTML = '';
+  
+  for (let i=0;i<Words;i++){
+    const x = WordX[i];
+    const y = WordY[i];
+    const clueNumber = CellNumbers[x][y];
+    
+    const li = document.createElement('li');
+    li.textContent = `${clueNumber}. ${Clue[i]}`;
+    li.className = 'cw-clue';
+    li.dataset.idx = i;
+    li.onclick = () => openWord(i);
+    
+    if (i<=LastHorizontalWord) {
+      listAcross.appendChild(li.cloneNode(true));
+      listAcross.querySelector('li:last-child').onclick = () => openWord(i);
+    } else {
+      listDown.appendChild(li.cloneNode(true));
+      listDown.querySelector('li:last-child').onclick = () => openWord(i);
+    }
+  }
+}
+
+function bindCheckButtons(){
+  const btnTop = document.getElementById('checkbuttonTop');
+  const btnBottom = document.getElementById('checkbuttonBottom');
+  const btnSolve = document.getElementById('solvebutton');
+  if (btnTop) btnTop.onclick = CheckClick;
+  if (btnBottom) btnBottom.onclick = CheckClick;
+  if (btnSolve) btnSolve.onclick = SolveAll;
+}
+
+function DeselectCurrentWord(){
+  if (CurrentWord<0) return;
+  document.getElementById("answerbox").style.display = "none";
+  ChangeCurrentWordSelectedStyle(false);
+  // disabilita edit celle della parola attiva
+  toggleCellsEditable(CurrentWord,false);
+  CurrentWord = -1;
+}
+
+function ChangeWordStyle(w, cls){
+  if (w<0) return;
+  let x=WordX[w], y=WordY[w];
+  if (w<=LastHorizontalWord) for (let i=0;i<WordLength[w];i++) CellAt(x+i,y).className=cls;
+  else for (let i=0;i<WordLength[w];i++) CellAt(x,y+i).className=cls;
+}
+function ChangeCurrentWordSelectedStyle(sel){
+  if (CurrentWord<0) return;
+  let x=WordX[CurrentWord], y=WordY[CurrentWord];
+  if (CurrentWord<=LastHorizontalWord)
+    for (let i=0;i<WordLength[CurrentWord];i++) CellAt(x+i,y).className = CellAt(x+i,y).className.replace(sel?"_unsel":"_sel", sel?"_sel":"_unsel");
+  else
+    for (let i=0;i<WordLength[CurrentWord];i++) CellAt(x,y+i).className = CellAt(x,y+i).className.replace(sel?"_unsel":"_sel", sel?"_sel":"_unsel");
+}
+
+function SelectThisWord(e){
+  if (CrosswordFinished) return;
+  const target = (e.srcElement ? e.srcElement : e.target);
+  const x = parseInt(target.id.substring(1,4),10);
+  const y = parseInt(target.id.substring(4,7),10);
+  let idx;
+  if (TableAcrossWord[x][y]>=0 && TableDownWord[x][y]>=0) idx = PrevWordHorizontal ? TableDownWord[x][y] : TableAcrossWord[x][y];
+  else if (TableAcrossWord[x][y]>=0) idx = TableAcrossWord[x][y];
+  else if (TableDownWord[x][y]>=0) idx = TableDownWord[x][y];
+  openWord(idx);
+}
+
+function openWord(idx){
+  const wl = document.getElementById('welcomelabel'); if (wl) wl.style.display='none';
+  if (CurrentWord>=0){
+    finalizeInline(false);
+    updateWordStatus(CurrentWord);
+  }
+  DeselectCurrentWord();
+  CurrentWord = idx;
+  PrevWordHorizontal = (CurrentWord<=LastHorizontalWord);
+  ChangeCurrentWordSelectedStyle(true);
+
+  // abilita editing celle della parola
+  toggleCellsEditable(idx,true);
+
+  // Mostra solo la riga informativa grande
+  const dir = (idx<=LastHorizontalWord) ? "Orizzontale" : "Verticale";
+  document.getElementById("wordinfo").innerHTML = `${dir}, ${WordLength[idx]} lettere.`;
+
+  document.getElementById("worderror").style.display="none";
+  document.getElementById("answerbox").style.display = "block";
+
+  document.querySelectorAll('.cw-clue').forEach(el=>el.classList.remove('active'));
+  document.querySelector(`.cw-clue[data-idx="${idx}"]`)?.classList.add('active');
+
+  const first = CellAt(WordX[idx], WordY[idx]); first?.focus();
+  first?.scrollIntoView({behavior:'smooth', block:'center', inline:'center'});
+}
+
+
+function setCellEditable(x,y,editable){
+  const td = CellAt(x,y);
+  if (!td) return;
+  td.contentEditable = editable ? "true" : "false";
+  if (editable) td.setAttribute('data-edit','1'); else td.removeAttribute('data-edit');
+  if (!editable && (!td.textContent || td.textContent==="�" || td.innerHTML.toLowerCase()==="&nbsp;")) td.innerHTML="&nbsp;";
+}
+
+function toggleCellsEditable(idx, editable){
+  const x0=WordX[idx], y0=WordY[idx];
+  for(let i=0;i<WordLength[idx];i++){
+    const cx = x0 + (idx<=LastHorizontalWord? i:0);
+    const cy = y0 + (idx> LastHorizontalWord? i:0);
+    setCellEditable(cx,cy,editable);
+  }
+}
+
+function isWordComplete(idx){
+  const x0=WordX[idx], y0=WordY[idx];
+  for(let i=0;i<WordLength[idx];i++){
+    const cx = x0 + (idx<=LastHorizontalWord? i:0);
+    const cy = y0 + (idx> LastHorizontalWord? i:0);
+    const td = CellAt(cx,cy);
+    if (!td || !td.textContent || td.textContent === '' || td.textContent === ' ' || td.innerHTML.toLowerCase() === "&nbsp;"){
+      return false;
+    }
+  }
+  return true;
+}
+
+function updateWordStatus(idx){
+  if (idx < 0 || idx >= Words) return;
+  const clueEl = document.querySelector(`.cw-clue[data-idx="${idx}"]`);
+  if (!clueEl) return;
+  
+  if (isWordComplete(idx)){
+    clueEl.classList.add('solved');
+  } else {
+    clueEl.classList.remove('solved');
+  }
+}
+
+/* Input diretto nelle celle */
+document.addEventListener('beforeinput', (e)=>{
+  const td = e.target;
+  if (!(td instanceof HTMLElement) || td.getAttribute('data-edit')!=='1') return;
+  if (e.inputType==='insertFromPaste'){ e.preventDefault(); return; }
+  if (e.data && e.data.length>1){ e.preventDefault(); return; }
+});
+document.addEventListener('input', (e)=>{
+  const td = e.target;
+  if (!(td instanceof HTMLElement) || td.getAttribute('data-edit')!=='1') return;
+  td.textContent = (td.textContent||'').toUpperCase().replace(/[^A-Z�-��-�]/g,'').slice(0,1);
+  moveToNextCell(td, +1);
+  if (CurrentWord >= 0) updateWordStatus(CurrentWord);
+});
+document.addEventListener('keydown', (e)=>{
+  const td = e.target;
+  if (!(td instanceof HTMLElement) || td.getAttribute('data-edit')!=='1') return;
+
+  if (e.key==='Backspace'){
+    e.preventDefault();
+    // Se la cella contiene una lettera, cancellala
+    if (td.textContent && td.textContent !== ' ' && td.textContent !== '&nbsp;'){
+      td.textContent = '';
+      if (CurrentWord >= 0) updateWordStatus(CurrentWord);
+    } else {
+      // Se la cella � vuota, vai alla cella precedente
+      moveToNextCell(td, -1, true);
+    }
+    return;
+  }
+
+  if (e.key==='ArrowRight' || e.key==='ArrowDown'){ e.preventDefault(); moveToNextCell(td, +1); }
+  if (e.key==='ArrowLeft'  || e.key==='ArrowUp'){   e.preventDefault(); moveToNextCell(td, -1); }
+
+	if (e.key === 'Enter'){
+	  e.preventDefault();
+	  finalizeInline(false);   // chiude senza validare
+	  selectNextWord();        // passa alla parola successiva
+	}
+});
+
+
+function findCellOffset(td, idx){
+  const x=parseInt(td.id.substring(1,4),10);
+  const y=parseInt(td.id.substring(4,7),10);
+  const x0=WordX[idx], y0=WordY[idx];
+  if (idx<=LastHorizontalWord && y===y0) return x-x0;
+  if (idx> LastHorizontalWord && x===x0) return y-y0;
+  return -1;
+}
+function moveToNextCell(td, dir, back=false){
+  if (CurrentWord<0) return;
+  const i0 = findCellOffset(td, CurrentWord);
+  if (i0<0) return;
+  const next = i0 + (back? -1: dir);
+  if (next<0 || next>=WordLength[CurrentWord]) return;
+  const x0=WordX[CurrentWord], y0=WordY[CurrentWord];
+  const nx = x0 + (CurrentWord<=LastHorizontalWord ? next : 0);
+  const ny = y0 + (CurrentWord> LastHorizontalWord ? next : 0);
+  CellAt(nx,ny)?.focus();
+}
+
+function finalizeInline(validate){
+  if (CurrentWord<0) return;
+  const idx=CurrentWord;
+  const x0=WordX[idx], y0=WordY[idx];
+  let word="";
+  for(let i=0;i<WordLength[idx];i++){
+    const cx = x0 + (idx<=LastHorizontalWord? i:0);
+    const cy = y0 + (idx> LastHorizontalWord? i:0);
+    const td = CellAt(cx,cy);
+    word += (td.textContent||'').toUpperCase();
+  }
+  if (validate){
+    if (word.length!==WordLength[idx] || HashWord(word.replace(/&AMP;/g,'&'))!==AnswerHash[idx]){
+      document.getElementById("worderror").innerHTML="Parola errata. Riprova.";
+      document.getElementById("worderror").style.display="block";
+      ChangeWordStyle(idx,"ecw-box ecw-boxerror_sel");
+      return;
+    }
+  }
+  // blocca edit
+  toggleCellsEditable(idx,false);
+  ChangeWordStyle(idx,"ecw-box ecw-boxnormal_unsel");
+  DeselectCurrentWord();
+}
+
+/* Check globale sui bottoni fissi */
+function CheckClick(){
+  if (CrosswordFinished) return;
+
+  // Chiudi eventuale parola attiva senza validare e ripulisci selezioni
+  DeselectCurrentWord();
+
+  let ErrorsFound = 0;
+  let EmptyFound  = 0;
+
+  // Resetta stile errori preesistenti
+  for (let y = 0; y < CrosswordHeight; y++){
+    for (let x = 0; x < CrosswordWidth; x++){
+      if (TableAcrossWord[x][y] >= 0 || TableDownWord[x][y] >= 0){
+        const c = CellAt(x, y);
+        if (c.className === "ecw-box ecw-boxerror_unsel"){
+          c.className = "ecw-box ecw-boxnormal_unsel";
+        }
+      }
+    }
+  }
+
+  // Verifica ogni parola
+  for (let i = 0; i < Words; i++){
+    let entry = "";
+    for (let j = 0; j < WordLength[i]; j++){
+      const td = (i <= LastHorizontalWord)
+        ? CellAt(WordX[i] + j, WordY[i])
+        : CellAt(WordX[i],     WordY[i] + j);
+
+      if (td && td.innerHTML.length > 0 && td.innerHTML.toLowerCase() !== "&nbsp;"){
+        entry += (td.textContent || "").toUpperCase();
+      } else {
+        entry = "";
+        EmptyFound++;
+        break;
+      }
+    }
+
+    entry = entry.replace(/&AMP;/g, "&");
+
+    // Marca in rosso le parole sbagliate ma complete
+    if (entry.length > 0 && HashWord(entry) !== AnswerHash[i]){
+      ErrorsFound++;
+      ChangeWordStyle(i, "ecw-box ecw-boxerror_unsel");
+    } else if (entry.length > 0 && HashWord(entry) === AnswerHash[i]){
+      // La parola è corretta: mantieni il 'solved' se è già marcato
+      // Non resettare 'solved' per le parole incomplete, il tracking in tempo reale lo gestisce
+    }
+  }
+
+  // Aggiorna messaggio di stato nel footer
+  let msg = "";
+  if (ErrorsFound > 0 && EmptyFound > 0){
+    msg = `${ErrorsFound} errori e ${EmptyFound} parole incomplete.`;
+  } else if (ErrorsFound > 0){
+    msg = `${ErrorsFound} errori trovati.`;
+  } else if (EmptyFound > 0){
+    msg = `Nessun errore, ma ${EmptyFound} parole incomplete.`;
+  } else {
+    msg = "Tutto corretto!";
+  }
+  document.getElementById("footer-info").textContent = msg;
+
+  // Mostra popup in-page
+  if (ErrorsFound === 0 && EmptyFound === 0){
+    // tutto completo e corretto
+    showModal('okModal', 'AUGURI DOTTORESSA', 'SIAMO ORGOGLIOSI DI TE', 'img/festa.jpg');
+    CrosswordFinished = true;      // opzionale: blocca ulteriori modifiche
+    // document.getElementById("congratulations").style.display = "block"; // opzionale se vuoi mantenere il box
+  } else {
+    // ci sono errori o parole incomplete
+    const body = (ErrorsFound > 0 && EmptyFound > 0)
+      ? `DOTTORESSA NON CI SIAMO.\n\n${ErrorsFound} errori e ${EmptyFound} parole incomplete.`
+      : (ErrorsFound > 0)
+        ? `DOTTORESSA NON CI SIAMO.\n\n${ErrorsFound} errori trovati.`
+        : `${EmptyFound} parole incomplete. Completa tutte le voci e riprova.`;
+    showModal('errModal', 'Controlla le risposte', 'HEY NON CI SIAMO DOTTORESSA - Rivedi le voci evidenziate in rosso.', 'img/ritenta.jpg');
+  }
+}
+
+
+/* Cheating singola parola corrente (riempie celle e valida) */
+function CheatClick(){
+  if (CrosswordFinished || CurrentWord<0) return;
+  const idx = CurrentWord;
+  const x0=WordX[idx], y0=WordY[idx];
+  const w = Word[idx].toUpperCase();
+  for(let i=0;i<WordLength[idx];i++){
+    const cx = x0 + (idx<=LastHorizontalWord? i:0);
+    const cy = y0 + (idx> LastHorizontalWord? i:0);
+    const td = CellAt(cx,cy);
+    td.textContent = w[i];
+  }
+  finalizeInline(true);
+}
+
+/* Risolvi la parola selezionata (riempie la parola corrente) */
+function SolveAll(){
+  if (CrosswordFinished || CurrentWord<0) return;
+  const idx = CurrentWord;
+  const x0=WordX[idx], y0=WordY[idx];
+  const w = Word[idx].toUpperCase();
+  for(let i=0;i<WordLength[idx];i++){
+    const cx = x0 + (idx<=LastHorizontalWord? i:0);
+    const cy = y0 + (idx> LastHorizontalWord? i:0);
+    const td = CellAt(cx,cy);
+    td.textContent = w[i];
+  }
+  finalizeInline(true);
+}
+
+/* Hash originale ECW */
+function HashWord(Word){
+  var x = (Word.charCodeAt(0) * 719) % 1138;
+  var Hash = 837;
+  for (var i=1;i<=Word.length;i++) Hash = (Hash * i + 5 + (Word.charCodeAt(i - 1) - 64) * x) % 98503;
+  return Hash;
+}
+
+/* Init */
+document.addEventListener('DOMContentLoaded', ()=>{
+  initGrid();
+  buildClues();
+  bindCheckButtons();
+});
+
+/* ===== Popup in-page riutilizzabili (OK/ERROR) ===== */
+
+/**
+ * Mostra un modal in-page.
+ * @param {string} id       - 'okModal' | 'errModal'
+ * @param {string} title    - Titolo da mostrare
+ * @param {string} text     - Testo/descrizione
+ * @param {string} [imgUrl] - URL immagine (opzionale). Se assente l'immagine non appare
+ */
+function showModal(id, title, text, imgUrl){
+  const modal = document.getElementById(id);
+  if (!modal) return;
+
+  // Elementi del modal
+  const titleEl = modal.querySelector('.modal-title');
+  const textEl  = modal.querySelector('p');
+  const imgEl   = modal.querySelector('img');
+
+  if (titleEl) titleEl.textContent = title || '';
+  if (textEl)  textEl.textContent  = text  || '';
+
+  // Gestione immagine opzionale
+  if (imgEl){
+    if (imgUrl){
+      imgEl.src = imgUrl;
+      imgEl.style.display = '';
+    } else {
+      imgEl.removeAttribute('src');
+      imgEl.style.display = 'none';
+    }
+  }
+
+  modal.classList.add('show');
+  modal.setAttribute('aria-hidden','false');
+}
+
+/**
+ * Nasconde un modal in-page.
+ * @param {string} id - 'okModal' | 'errModal'
+ */
+function hideModal(id){
+  const modal = document.getElementById(id);
+  if (!modal) return;
+  modal.classList.remove('show');
+  modal.setAttribute('aria-hidden','true');
+}
+
+/* Chiudi cliccando sul backdrop */
+document.addEventListener('click', (e)=>{
+  if (!e.target.classList.contains('modal-backdrop')) return;
+  const okM  = document.getElementById('okModal');
+  const errM = document.getElementById('errModal');
+  if (okM?.classList.contains('show'))  hideModal('okModal');
+  if (errM?.classList.contains('show')) hideModal('errModal');
+});
+
+/* Chiudi con tasto ESC */
+document.addEventListener('keydown', (e)=>{
+  if (e.key !== 'Escape') return;
+  const okM  = document.getElementById('okModal');
+  const errM = document.getElementById('errModal');
+  if (okM?.classList.contains('show'))  hideModal('okModal');
+  if (errM?.classList.contains('show')) hideModal('errModal');
+});
+
+
+</script>
+<!-- Popup ESITO CORRETTO -->
+<div id="okModal" class="modal" aria-hidden="true">
+  <div class="modal-backdrop"></div>
+  <div class="modal-panel">
+    <button class="modal-close" aria-label="Chiudi" onclick="hideModal('okModal')">&times;</button>
+    <h3 class="modal-title" id="okTitle">Ottimo lavoro!</h3>
+    <img id="okImg" alt="" style="display:none; width:100%; height:auto; border-radius:12px; object-fit:cover; margin:4px 0 12px;" />
+    <p id="okText">Non sono stati trovati errori nelle parole inserite.</p>
+    <div class="modal-actions">
+      <button type="button" class="btn5" onclick="hideModal('okModal')">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- Popup ESITO CON ERRORI -->
+<div id="errModal" class="modal" aria-hidden="true">
+  <div class="modal-backdrop"></div>
+  <div class="modal-panel">
+    <button class="modal-close" aria-label="Chiudi" onclick="hideModal('errModal')">&times;</button>
+    <h3 class="modal-title" id="errTitle">Controlla le risposte</h3>
+    <img id="errImg" alt="" style="display:none; width:100%; height:auto; border-radius:12px; object-fit:cover; margin:4px 0 12px;" />
+    <p id="errText">Ci sono errori o parole incomplete. Le voci errate sono evidenziate.</p>
+    <div class="modal-actions">
+      <button type="button" class="btn5" onclick="hideModal('errModal')">OK</button>
+    </div>
+  </div>
+</div>
+
+
+</body>
+</html>
+
+

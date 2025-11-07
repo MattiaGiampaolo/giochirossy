@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collezione di Giochi Educativi</title>
+    <link rel="stylesheet" href="CSS.css">
+</head>
+<body>
+    <!-- HEADER -->
+    <header class="header">
+        <div class="header-content">
+            <h1 class="title">🌶️ Giochi di Laurea per Rossy 🍀</h1>
+            <p class="subtitle">Avvertenza: i risultati potrebbero non corrispondere alla realtà. Anzi, probabilmente no</p>
+        </div>
+    </header>
+
+    <!-- NAVIGATION -->
+    <nav class="nav-menu">
+        <div class="nav-container">
+            <button class="nav-btn active" data-game="home">Home</button>
+            <button class="nav-btn" data-game="crossword">Cruciverba</button>
+            <button class="nav-btn" data-game="truefalse">Vero/Falso</button>
+            <button class="nav-btn" data-game="memory">Memory Game</button>
+            <button class="nav-btn" data-game="hangman">Indovina la Frase</button>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTAINER -->
+    <main class="main-container">
+        
+        <!-- HOME SECTION -->
+        <section id="home" class="game-section active">
+            <div class="section-content">
+                <h2>Ciau Dottoressa</h2>
+                <p>Gioca, divertiti, e prepara le scuse per le domande che sbaglierai</p>
+                <div class="games-grid">
+                    <div class="game-card" onclick="switchGame('crossword')">
+                        <h3>🔤 Cruciverba</h3>
+                        <p>Sei davvero convinta di sapere tutto? Compila le caselle e scopri dove sbagli senza pietà</p>
+                    </div>
+                    <div class="game-card" onclick="switchGame('truefalse')">
+                        <h3>✓ Vero o Falso</h3>
+                        <p>Rispondi veloce: è più importante essere sinceri... o sembrare preparati? Qui puoi sbagliare in dieci secondi.</p>
+                    </div>
+                    <div class="game-card" onclick="switchGame('memory')">
+                        <h3>🎲 Memory Game</h3>
+                        <p>Credi di avere una memoria infallibile? Perfetto, qui scoprirai quanto è facile dimenticarsi di tutto.</p>
+                    </div>
+                    <div class="game-card" onclick="switchGame('hangman')">
+                        <h3>📝 Indovina la Frase</h3>
+                        <p>Hai presente quella sensazione di 'ce l’ho sulla punta della lingua'? Ecco, qui la proverai spesso!</p>
+                </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CROSSWORD SECTION -->
+        <section id="crossword" class="game-section">
+            <div class="section-content">
+                <h2>🔤 Cruciverba</h2>
+                <iframe id="crossword-iframe" src="cruciverba_advanced.html?v=1" style="width: 100%; height: 800px; border: 2px solid #800020; border-radius: 12px; margin-top: 2rem;"></iframe>
+            </div>
+        </section>
+
+        <!-- TRUE/FALSE SECTION -->
+        <section id="truefalse" class="game-section">
+            <div class="section-content">
+                <div class="game-header">
+                    <h2>✓ Vero o Falso</h2>
+                    <div class="game-stats">
+                        <span id="truefalse-score">Risposta: -</span>
+                        <span id="truefalse-counter">Domanda 1 di 5</span>
+                    </div>
+                </div>
+                <div id="truefalse-container" class="game-container">
+                    <div id="truefalse-question" class="question-display"></div>
+                    <div class="true-false-buttons">
+                        <button class="btn-true" onclick="answerTrueFalse(true)">✓ Vero</button>
+                        <button class="btn-false" onclick="answerTrueFalse(false)">✗ Falso</button>
+                    </div>
+                    <div id="truefalse-feedback" class="feedback"></div>
+                </div>
+                <div class="game-buttons">
+                    <button class="btn-reset" onclick="resetTrueFalse()">Reset</button>
+                    <button class="btn-next" onclick="nextTrueFalse()" style="display:none;" id="truefalse-next">Prossima</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- MEMORY GAME SECTION -->
+        <section id="memory" class="game-section">
+            <div class="section-content">
+                <div class="game-header">
+                    <h2>🎲 Memory Game</h2>
+                    <div class="game-stats">
+                        <span id="memory-score">Mosse: 0</span>
+                        <span id="memory-pairs">Coppie trovate: 0/8</span>
+                    </div>
+                </div>
+                <div id="memory-container" class="game-container">
+                    <div id="memoryGrid" class="memory-grid"></div>
+                </div>
+                <div class="game-buttons">
+                    <button class="btn-reset" onclick="resetMemory()">Reset</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- HANGMAN SECTION (NUOVO: Indovina la Frase) -->
+        <section id="hangman" class="game-section">
+            <div class="section-content">
+                <h2>📝 Indovina la Frase</h2>
+                <div class="game-header">
+                    <div class="game-stats">
+                        <span id="hangman-tries">Tentativi rimasti: 6</span>
+                    </div>
+                </div>
+                <div id="hangman-display" class="hangman-display">
+                    <div id="hangman-word-container" class="hangman-word-container"></div>
+                </div>
+                <div id="hangman-letters" class="hangman-letters"></div>
+                <div id="hangman-feedback" class="feedback"></div>
+                <div class="game-buttons">
+                    <button class="btn-reset" onclick="resetHangman()">Reset</button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODALS -->
+    <!-- True/False Completion Modal -->
+    <div id="truefalse-modal" class="modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-panel">
+            <button class="modal-close" onclick="closeModal('truefalse-modal')">✕</button>
+            <h3 class="modal-title">🎉 Quiz Completato!</h3>
+            <div class="modal-content" id="truefalse-modal-content"></div>
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-primary" onclick="closeModal('truefalse-modal')">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Memory Victory Modal -->
+    <div id="memory-modal" class="modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-panel">
+            <button class="modal-close" onclick="closeModal('memory-modal')">✕</button>
+            <h3 class="modal-title">🏆 Complimenti!</h3>
+            <div class="modal-content" id="memory-modal-content"></div>
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-primary" onclick="closeModal('memory-modal')">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hangman Victory Modal -->
+    <div id="hangman-victory-modal" class="modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-panel">
+            <button class="modal-close" onclick="closeModal('hangman-victory-modal')">✕</button>
+            <h3 class="modal-title">🎉 Hai Vinto!</h3>
+            <div class="modal-content" id="hangman-victory-modal-content"></div>
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-primary" onclick="closeModal('hangman-victory-modal')">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hangman Defeat Modal -->
+    <div id="hangman-defeat-modal" class="modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-panel">
+            <button class="modal-close" onclick="closeModal('hangman-defeat-modal')">✕</button>
+            <h3 class="modal-title">😢 Hai Perso!</h3>
+            <div class="modal-content" id="hangman-defeat-modal-content"></div>
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-primary" onclick="closeModal('hangman-defeat-modal')">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <p>&copy; Collezioni di Giochi per Rossellina. Divertiti  🎓</p>
+    </footer>
+
+    <script src="JAVA.js"></script>
+</body>
+</html>
